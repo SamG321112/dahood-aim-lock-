@@ -1,0 +1,189 @@
+local Camera = workspace.CurrentCamera
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+local Holding = false
+
+_G.AimLockEnabled = false -- Start disabled
+_G.FOVEnabled = false -- Start disabled
+_G.AimPart = "Head"
+_G.Sensitivity = 0
+
+_G.CircleSides = 64
+_G.CircleColor = Color3.fromRGB(255, 0, 0) -- Red when disabled
+_G.CircleTransparency = 0.7
+_G.CircleRadius = 80
+_G.CircleFilled = false
+_G.CircleVisible = false -- Start hidden
+_G.CircleThickness = 0
+
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+FOVCircle.Radius = _G.CircleRadius
+FOVCircle.Filled = _G.CircleFilled
+FOVCircle.Color = _G.CircleColor
+FOVCircle.Visible = _G.CircleVisible
+FOVCircle.Transparency = _G.CircleTransparency
+FOVCircle.NumSides = _G.CircleSides
+FOVCircle.Thickness = _G.CircleThickness
+
+local function GetClosestPlayer()
+    local MaximumDistance = _G.CircleRadius
+    local Target = nil
+
+    for _, v in next, Players:GetPlayers() do
+        if v.Name ~= LocalPlayer.Name and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
+            local ScreenPoint = Camera:WorldToScreenPoint(v.Character.HumanoidRootPart.Position)
+            local VectorDistance = (Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y) - Vector2.new(ScreenPoint.X, ScreenPoint.Y)).Magnitude
+
+            if VectorDistance < MaximumDistance then
+                Target = v
+                MaximumDistance = VectorDistance
+            end
+        end
+    end
+
+    return Target
+end
+
+UserInputService.InputBegan:Connect(function(Input)
+    if Input.UserInputType == Enum.UserInputType.MouseButton2 then
+        Holding = true
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(Input)
+    if Input.UserInputType == Enum.UserInputType.MouseButton2 then
+        Holding = false
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    FOVCircle.Position = Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y)
+    FOVCircle.Radius = _G.CircleRadius
+    FOVCircle.Filled = _G.CircleFilled
+    FOVCircle.Color = _G.CircleColor
+    FOVCircle.Visible = _G.CircleVisible
+    FOVCircle.Transparency = _G.CircleTransparency
+    FOVCircle.NumSides = _G.CircleSides
+    FOVCircle.Thickness = _G.CircleThickness
+
+    if Holding == true and _G.AimLockEnabled == true then
+        local target = GetClosestPlayer()
+        if target then
+            TweenService:Create(Camera, TweenInfo.new(_G.Sensitivity, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {CFrame = CFrame.new(Camera.CFrame.Position, target.Character[_G.AimPart].Position)}):Play()
+        end
+    end
+end)
+
+-- GUI
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local Sidebar = Instance.new("Frame")
+local MainButton = Instance.new("TextButton")
+local AimLockButton = Instance.new("TextButton")
+local FOVButton = Instance.new("TextButton")
+local DiscordButton = Instance.new("TextButton")
+local MinimizeButton = Instance.new("TextButton")
+local Minimized = false
+
+ScreenGui.Parent = game.CoreGui
+
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30) -- Dark theme background
+MainFrame.BackgroundTransparency = 0.5
+MainFrame.Position = UDim2.new(0.85, 0, 0.05, 0) -- Adjusted position to the top right
+MainFrame.Size = UDim2.new(0, 300, 0, 250) -- Adjusted size for better layout
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.ClipsDescendants = true
+
+Sidebar.Parent = MainFrame
+Sidebar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Sidebar.Size = UDim2.new(0, 60, 1, 0)
+
+MainButton.Parent = Sidebar
+MainButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+MainButton.Size = UDim2.new(0, 60, 0, 30)
+MainButton.Position = UDim2.new(0, 0, 0.05, 0)
+MainButton.Text = "Main"
+MainButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+MainButton.TextSize = 14
+MainButton.Font = Enum.Font.SourceSansBold
+
+MinimizeButton.Parent = MainFrame
+MinimizeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+MinimizeButton.Size = UDim2.new(0, 25, 0, 25)
+MinimizeButton.Position = UDim2.new(0.95, -25, 0.05, 0)
+MinimizeButton.Text = "-"
+MinimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeButton.TextSize = 20
+
+AimLockButton.Parent = MainFrame
+AimLockButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Red when disabled
+AimLockButton.Size = UDim2.new(0, 200, 0, 40)
+AimLockButton.Position = UDim2.new(0.25, 0, 0.25, 0)
+AimLockButton.Text = "AimLock"
+AimLockButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+AimLockButton.TextSize = 14
+AimLockButton.Font = Enum.Font.SourceSansBold
+
+FOVButton.Parent = MainFrame
+FOVButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Red when disabled
+FOVButton.Size = UDim2.new(0, 200, 0, 40)
+FOVButton.Position = UDim2.new(0.25, 0, 0.45, 0)
+FOVButton.Text = "FOV"
+FOVButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+FOVButton.TextSize = 14
+FOVButton.Font = Enum.Font.SourceSansBold
+
+DiscordButton.Parent = MainFrame
+DiscordButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+DiscordButton.Size = UDim2.new(0, 200, 0, 40)
+DiscordButton.Position = UDim2.new(0.25, 0, 0.75, 0)
+DiscordButton.Text = "Discord (Press to Copy)"
+DiscordButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+DiscordButton.TextSize = 14
+DiscordButton.Font = Enum.Font.SourceSansBold
+
+MinimizeButton.MouseButton1Click:Connect(function()
+    Minimized = not Minimized
+    AimLockButton.Visible = not Minimized
+    FOVButton.Visible = not Minimized
+    DiscordButton.Visible = not Minimized
+    if Minimized then
+        MinimizeButton.Text = "+"
+    else
+        MinimizeButton.Text = "-"
+    end
+end)
+
+AimLockButton.MouseButton1Click:Connect(function()
+    _G.AimLockEnabled = not _G.AimLockEnabled
+    if _G.AimLockEnabled then
+        AimLockButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- Green when enabled
+        FOVCircle.Color = Color3.fromRGB(0, 255, 0) -- Green when enabled
+    else
+        AimLockButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Red when disabled
+        FOVCircle.Color = Color3.fromRGB(255, 0, 0) -- Red when disabled
+    end
+end)
+
+FOVButton.MouseButton1Click:Connect(function()
+    _G.CircleVisible = not _G.CircleVisible
+    FOVCircle.Visible = _G.CircleVisible
+    if _G.CircleVisible then
+        FOVButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- Green when enabled
+    else
+        FOVButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Red when disabled
+    end
+end)
+
+DiscordButton.MouseButton1Click:Connect(function()
+    setclipboard("https://discord.gg/t6UgyY65")
+    DiscordButton.Text = "Link Copied!"
+    wait(2)
+    DiscordButton.Text = "Discord (Press to Copy)"
+end)
