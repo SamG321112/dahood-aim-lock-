@@ -4,7 +4,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
-local Holding = false
+local LockedTarget = nil
 
 _G.AimLockEnabled = false -- Start disabled
 _G.FOVEnabled = false -- Start disabled
@@ -29,6 +29,18 @@ FOVCircle.Transparency = _G.CircleTransparency
 FOVCircle.NumSides = _G.CircleSides
 FOVCircle.Thickness = _G.CircleThickness
 
+local TargetLabel = Instance.new("TextLabel")
+TargetLabel.Parent = game.CoreGui
+TargetLabel.Size = UDim2.new(0, 200, 0, 50)
+TargetLabel.Position = UDim2.new(1, -200, 1, -50)
+TargetLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+TargetLabel.BackgroundTransparency = 0.5
+TargetLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TargetLabel.TextSize = 14
+TargetLabel.Font = Enum.Font.SourceSansBold
+TargetLabel.Text = "No Target Locked"
+TargetLabel.Visible = true
+
 local function GetClosestPlayer()
     local MaximumDistance = _G.CircleRadius
     local Target = nil
@@ -49,14 +61,18 @@ local function GetClosestPlayer()
 end
 
 UserInputService.InputBegan:Connect(function(Input)
-    if Input.UserInputType == Enum.UserInputType.MouseButton2 then
-        Holding = true
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(Input)
-    if Input.UserInputType == Enum.UserInputType.MouseButton2 then
-        Holding = false
+    if Input.KeyCode == Enum.KeyCode.Q then
+        if _G.AimLockEnabled then
+            if LockedTarget == nil then
+                LockedTarget = GetClosestPlayer()
+                if LockedTarget then
+                    TargetLabel.Text = "Locked On: " .. LockedTarget.Name
+                end
+            else
+                LockedTarget = nil
+                TargetLabel.Text = "No Target Locked"
+            end
+        end
     end
 end)
 
@@ -70,11 +86,8 @@ RunService.RenderStepped:Connect(function()
     FOVCircle.NumSides = _G.CircleSides
     FOVCircle.Thickness = _G.CircleThickness
 
-    if Holding == true and _G.AimLockEnabled == true then
-        local target = GetClosestPlayer()
-        if target then
-            TweenService:Create(Camera, TweenInfo.new(_G.Sensitivity, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {CFrame = CFrame.new(Camera.CFrame.Position, target.Character[_G.AimPart].Position)}):Play()
-        end
+    if _G.AimLockEnabled and LockedTarget and LockedTarget.Character and LockedTarget.Character:FindFirstChild("HumanoidRootPart") then
+        TweenService:Create(Camera, TweenInfo.new(_G.Sensitivity, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {CFrame = CFrame.new(Camera.CFrame.Position, LockedTarget.Character[_G.AimPart].Position)}):Play()
     end
 end)
 
@@ -92,10 +105,10 @@ local Minimized = false
 ScreenGui.Parent = game.CoreGui
 
 MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30) -- Dark theme background
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MainFrame.BackgroundTransparency = 0.5
-MainFrame.Position = UDim2.new(0.85, 0, 0.05, 0) -- Adjusted position to the top right
-MainFrame.Size = UDim2.new(0, 300, 0, 250) -- Adjusted size for better layout
+MainFrame.Position = UDim2.new(0.85, 0, 0.05, 0)
+MainFrame.Size = UDim2.new(0, 300, 0, 250)
 MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.ClipsDescendants = true
@@ -122,7 +135,7 @@ MinimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 MinimizeButton.TextSize = 20
 
 AimLockButton.Parent = MainFrame
-AimLockButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Red when disabled
+AimLockButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
 AimLockButton.Size = UDim2.new(0, 200, 0, 40)
 AimLockButton.Position = UDim2.new(0.25, 0, 0.25, 0)
 AimLockButton.Text = "AimLock"
@@ -131,7 +144,7 @@ AimLockButton.TextSize = 14
 AimLockButton.Font = Enum.Font.SourceSansBold
 
 FOVButton.Parent = MainFrame
-FOVButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Red when disabled
+FOVButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
 FOVButton.Size = UDim2.new(0, 200, 0, 40)
 FOVButton.Position = UDim2.new(0.25, 0, 0.45, 0)
 FOVButton.Text = "FOV"
@@ -163,27 +176,30 @@ end)
 AimLockButton.MouseButton1Click:Connect(function()
     _G.AimLockEnabled = not _G.AimLockEnabled
     if _G.AimLockEnabled then
-        AimLockButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- Green when enabled
-        FOVCircle.Color = Color3.fromRGB(0, 255, 0) -- Green when enabled
+        AimLockButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+        FOVCircle.Color = Color3.fromRGB(0, 255, 0)
     else
-        AimLockButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Red when disabled
-        FOVCircle.Color = Color3.fromRGB(255, 0, 0) -- Red when disabled
+        AimLockButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        FOVCircle.Color = Color3.fromRGB(255, 0, 0)
+        LockedTarget = nil
+        TargetLabel.Text = "No Target Locked"
     end
 end)
 
 FOVButton.MouseButton1Click:Connect(function()
-    _G.CircleVisible = not _G.CircleVisible
-    FOVCircle.Visible = _G.CircleVisible
-    if _G.CircleVisible then
-        FOVButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- Green when enabled
+    _G.FOVEnabled = not _G.FOVEnabled
+    if _G.FOVEnabled then
+        FOVButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+        _G.CircleVisible = true
     else
-        FOVButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Red when disabled
+        FOVButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        _G.CircleVisible = false
     end
 end)
 
 DiscordButton.MouseButton1Click:Connect(function()
     setclipboard("https://discord.gg/t6UgyY65")
-    DiscordButton.Text = "Link Copied!"
-    wait(2)
+    DiscordButton.Text = "Copied to Clipboard!"
+    task.wait(1.5) -- Wait 1.5 seconds
     DiscordButton.Text = "Discord (Press to Copy)"
 end)
