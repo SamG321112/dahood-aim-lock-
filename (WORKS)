@@ -96,12 +96,15 @@ local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
 local Sidebar = Instance.new("Frame")
 local MainButton = Instance.new("TextButton")
+local ExtraButton = Instance.new("TextButton")
 local AimLockButton = Instance.new("TextButton")
 local FOVButton = Instance.new("TextButton")
 local DiscordButton = Instance.new("TextButton")
+local TrashTalkButton = Instance.new("TextButton")
 local MinimizeButton = Instance.new("TextButton")
 local Minimized = false
 
+-- GUI Setup
 ScreenGui.Parent = game.CoreGui
 
 MainFrame.Parent = ScreenGui
@@ -117,6 +120,7 @@ Sidebar.Parent = MainFrame
 Sidebar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 Sidebar.Size = UDim2.new(0, 60, 1, 0)
 
+-- Sidebar Buttons
 MainButton.Parent = Sidebar
 MainButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 MainButton.Size = UDim2.new(0, 60, 0, 30)
@@ -126,6 +130,56 @@ MainButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 MainButton.TextSize = 14
 MainButton.Font = Enum.Font.SourceSansBold
 
+ExtraButton.Parent = Sidebar
+ExtraButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+ExtraButton.Size = UDim2.new(0, 60, 0, 30)
+ExtraButton.Position = UDim2.new(0, 0, 0.15, 0)
+ExtraButton.Text = "Extra"
+ExtraButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ExtraButton.TextSize = 14
+ExtraButton.Font = Enum.Font.SourceSansBold
+
+-- Buttons for Main and Extra
+AimLockButton.Parent = MainFrame
+AimLockButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+AimLockButton.Size = UDim2.new(0, 200, 0, 40)
+AimLockButton.Position = UDim2.new(0.3, 0, 0.25, 0)  -- Adjusted position for Aim Lock
+AimLockButton.Text = "Aim Lock (Q)"
+AimLockButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+AimLockButton.TextSize = 14
+AimLockButton.Font = Enum.Font.SourceSansBold
+AimLockButton.Visible = false  -- Default visibility set to false
+
+FOVButton.Parent = MainFrame
+FOVButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+FOVButton.Size = UDim2.new(0, 200, 0, 40)
+FOVButton.Position = UDim2.new(0.3, 0, 0.4, 0)  -- Adjusted position for FOV
+FOVButton.Text = "FOV"
+FOVButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+FOVButton.TextSize = 14
+FOVButton.Font = Enum.Font.SourceSansBold
+FOVButton.Visible = false  -- Default visibility set to false
+
+DiscordButton.Parent = MainFrame
+DiscordButton.BackgroundColor3 = Color3.fromRGB(0, 0, 255)  -- Blue color for Discord
+DiscordButton.Size = UDim2.new(0, 200, 0, 40)
+DiscordButton.Position = UDim2.new(0.3, 0, 0.55, 0)  -- Positioned below FOV
+DiscordButton.Text = "Join Discord"
+DiscordButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+DiscordButton.TextSize = 14
+DiscordButton.Font = Enum.Font.SourceSansBold
+DiscordButton.Visible = false  -- Default visibility set to false
+
+TrashTalkButton.Parent = MainFrame
+TrashTalkButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+TrashTalkButton.Size = UDim2.new(0, 200, 0, 40)
+TrashTalkButton.Position = UDim2.new(0.3, 0, 0.25, 0)  -- Higher in Extra
+TrashTalkButton.Text = "Trash Talk"
+TrashTalkButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+TrashTalkButton.TextSize = 14
+TrashTalkButton.Font = Enum.Font.SourceSansBold
+TrashTalkButton.Visible = false  -- Default visibility set to false
+
 MinimizeButton.Parent = MainFrame
 MinimizeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 MinimizeButton.Size = UDim2.new(0, 25, 0, 25)
@@ -134,72 +188,75 @@ MinimizeButton.Text = "-"
 MinimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 MinimizeButton.TextSize = 20
 
-AimLockButton.Parent = MainFrame
-AimLockButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-AimLockButton.Size = UDim2.new(0, 200, 0, 40)
-AimLockButton.Position = UDim2.new(0.25, 0, 0.25, 0)
-AimLockButton.Text = "AimLock"
-AimLockButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-AimLockButton.TextSize = 14
-AimLockButton.Font = Enum.Font.SourceSansBold
+-- Function to show the Main section (Aim Lock, FOV, Discord)
+MainButton.MouseButton1Click:Connect(function()
+    AimLockButton.Visible = true
+    FOVButton.Visible = true
+    DiscordButton.Visible = true  -- Show Discord Button
+    TrashTalkButton.Visible = false  -- Hide Trash Talk Button in Main
+end)
 
-FOVButton.Parent = MainFrame
-FOVButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-FOVButton.Size = UDim2.new(0, 200, 0, 40)
-FOVButton.Position = UDim2.new(0.25, 0, 0.45, 0)
-FOVButton.Text = "FOV"
-FOVButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-FOVButton.TextSize = 14
-FOVButton.Font = Enum.Font.SourceSansBold
+-- Function to show the Extra section (Trash Talk only)
+ExtraButton.MouseButton1Click:Connect(function()
+    AimLockButton.Visible = false
+    FOVButton.Visible = false
+    DiscordButton.Visible = false  -- Hide Discord Button in Extra
+    TrashTalkButton.Visible = true  -- Show Trash Talk Button
+end)
 
-DiscordButton.Parent = MainFrame
-DiscordButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-DiscordButton.Size = UDim2.new(0, 200, 0, 40)
-DiscordButton.Position = UDim2.new(0.25, 0, 0.75, 0)
-DiscordButton.Text = "Discord (Press to Copy)"
-DiscordButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-DiscordButton.TextSize = 14
-DiscordButton.Font = Enum.Font.SourceSansBold
+-- Function to copy Discord link to clipboard
+DiscordButton.MouseButton1Click:Connect(function()
+    setclipboard("https://discord.gg/t6UgyY65")
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Discord Link Copied!",
+        Text = "The Discord invite link has been copied to your clipboard.",
+        Duration = 2
+    })
+end)
 
-MinimizeButton.MouseButton1Click:Connect(function()
-    Minimized = not Minimized
-    AimLockButton.Visible = not Minimized
-    FOVButton.Visible = not Minimized
-    DiscordButton.Visible = not Minimized
-    if Minimized then
-        MinimizeButton.Text = "+"
+-- Toggle FOV (green for enabled, red for disabled)
+FOVButton.MouseButton1Click:Connect(function()
+    _G.FOVEnabled = not _G.FOVEnabled
+    if _G.FOVEnabled then
+        FOVButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)  -- Green when enabled
+        _G.CircleVisible = true
     else
-        MinimizeButton.Text = "-"
+        FOVButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)  -- Red when disabled
+        _G.CircleVisible = false
     end
 end)
 
+-- Toggle AimLock (green for enabled, red for disabled)
 AimLockButton.MouseButton1Click:Connect(function()
     _G.AimLockEnabled = not _G.AimLockEnabled
     if _G.AimLockEnabled then
-        AimLockButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-        FOVCircle.Color = Color3.fromRGB(0, 255, 0)
+        AimLockButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)  -- Green when enabled
+        FOVCircle.Color = Color3.fromRGB(0, 255, 0)  -- Green when enabled
     else
-        AimLockButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-        FOVCircle.Color = Color3.fromRGB(255, 0, 0)
+        AimLockButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)  -- Red when disabled
+        FOVCircle.Color = Color3.fromRGB(255, 0, 0)  -- Red when disabled
         LockedTarget = nil
         TargetLabel.Text = "No Target Locked"
     end
 end)
 
-FOVButton.MouseButton1Click:Connect(function()
-    _G.FOVEnabled = not _G.FOVEnabled
-    if _G.FOVEnabled then
-        FOVButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-        _G.CircleVisible = true
-    else
-        FOVButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-        _G.CircleVisible = false
-    end
+-- Trash Talk functionality
+local words = {
+    'ur bad', 'Dont care', 'Quit the game', 'XD ', 'sad', 'I would quit if i had that aim',
+    'Log already sonny boy', 'how did u fail to get me',
+}
+
+local player = game.Players.LocalPlayer
+local keybind = 'z'
+local event = game.ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest
+
+TrashTalkButton.MouseButton1Click:Connect(function()
+    local randomMessage = words[math.random(1, #words)]
+    event:FireServer(randomMessage, "All")
 end)
 
-DiscordButton.MouseButton1Click:Connect(function()
-    setclipboard("https://discord.gg/t6UgyY65")
-    DiscordButton.Text = "Copied to Clipboard!"
-    task.wait(1.5) -- Wait 1.5 seconds
-    DiscordButton.Text = "Discord (Press to Copy)"
+-- Minimize button functionality
+MinimizeButton.MouseButton1Click:Connect(function()
+    Minimized = not Minimized
+    MainFrame.Visible = not Minimized
 end)
