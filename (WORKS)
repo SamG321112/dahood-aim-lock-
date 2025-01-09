@@ -1,3 +1,4 @@
+--// Vars \\--
 local Camera = workspace.CurrentCamera
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -9,7 +10,9 @@ local LockedTarget = nil
 _G.AimLockEnabled = false -- Start disabled
 _G.FOVEnabled = false -- Start disabled
 _G.AimPart = "Head"
-_G.Sensitivity = 0
+_G.Sensitivity = 0.2
+_G.PredictionEnabled = false -- Start disabled
+_G.PredictionTime = 0.1 -- Initial prediction time
 
 _G.CircleSides = 64
 _G.CircleColor = Color3.fromRGB(255, 0, 0) -- Red when disabled
@@ -19,6 +22,12 @@ _G.CircleFilled = false
 _G.CircleVisible = false -- Start hidden
 _G.CircleThickness = 0
 
+local AimParts = {
+    Head = "Head",
+    Chest = "UpperTorso",
+    Legs = "LowerTorso"
+}
+
 local FOVCircle = Drawing.new("Circle")
 FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
 FOVCircle.Radius = _G.CircleRadius
@@ -26,7 +35,6 @@ FOVCircle.Filled = _G.CircleFilled
 FOVCircle.Color = _G.CircleColor
 FOVCircle.Visible = _G.CircleVisible
 FOVCircle.Transparency = _G.CircleTransparency
-FOVCircle.NumSides = _G.CircleSides
 FOVCircle.Thickness = _G.CircleThickness
 
 local TargetLabel = Instance.new("TextLabel")
@@ -60,6 +68,16 @@ local function GetClosestPlayer()
     return Target
 end
 
+local function PredictPosition(target)
+    local targetRoot = target.Character:FindFirstChild("HumanoidRootPart")
+    if targetRoot then
+        local velocity = targetRoot.Velocity
+        local predictedPosition = targetRoot.Position + (velocity * _G.PredictionTime)
+        return predictedPosition
+    end
+    return target.Character[_G.AimPart].Position
+end
+
 UserInputService.InputBegan:Connect(function(Input)
     if Input.KeyCode == Enum.KeyCode.Q then
         if _G.AimLockEnabled then
@@ -83,180 +101,98 @@ RunService.RenderStepped:Connect(function()
     FOVCircle.Color = _G.CircleColor
     FOVCircle.Visible = _G.CircleVisible
     FOVCircle.Transparency = _G.CircleTransparency
-    FOVCircle.NumSides = _G.CircleSides
     FOVCircle.Thickness = _G.CircleThickness
 
     if _G.AimLockEnabled and LockedTarget and LockedTarget.Character and LockedTarget.Character:FindFirstChild("HumanoidRootPart") then
-        TweenService:Create(Camera, TweenInfo.new(_G.Sensitivity, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {CFrame = CFrame.new(Camera.CFrame.Position, LockedTarget.Character[_G.AimPart].Position)}):Play()
+        local aimPosition = LockedTarget.Character[_G.AimPart].Position
+        if _G.PredictionEnabled then
+            aimPosition = PredictPosition(LockedTarget)
+        end
+        Camera.CFrame = CFrame.new(Camera.CFrame.Position, aimPosition)
     end
 end)
 
--- GUI
-local ScreenGui = Instance.new("ScreenGui")
-local MainFrame = Instance.new("Frame")
-local Sidebar = Instance.new("Frame")
-local MainButton = Instance.new("TextButton")
-local ExtraButton = Instance.new("TextButton")
-local AimLockButton = Instance.new("TextButton")
-local FOVButton = Instance.new("TextButton")
-local DiscordButton = Instance.new("TextButton")
-local TrashTalkButton = Instance.new("TextButton")
-local MinimizeButton = Instance.new("TextButton")
-local Minimized = false
+-- Load Fluent UI Library
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local Window = Fluent:CreateWindow({
+    Title = "Aim Control",
+    SubTitle = "discord.gg/t6UgyY65",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+    Acrylic = false,
+    Theme = "Crimson",
+    MinimizeKey = Enum.KeyCode.LeftControl
+})
 
--- GUI Setup
-ScreenGui.Parent = game.CoreGui
-
-MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-MainFrame.BackgroundTransparency = 0.5
-MainFrame.Position = UDim2.new(0.85, 0, 0.05, 0)
-MainFrame.Size = UDim2.new(0, 300, 0, 250)
-MainFrame.Active = true
-MainFrame.Draggable = true
-MainFrame.ClipsDescendants = true
-
-Sidebar.Parent = MainFrame
-Sidebar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-Sidebar.Size = UDim2.new(0, 60, 1, 0)
-
--- Sidebar Buttons
-MainButton.Parent = Sidebar
-MainButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-MainButton.Size = UDim2.new(0, 60, 0, 30)
-MainButton.Position = UDim2.new(0, 0, 0.05, 0)
-MainButton.Text = "Main"
-MainButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-MainButton.TextSize = 14
-MainButton.Font = Enum.Font.SourceSansBold
-
-ExtraButton.Parent = Sidebar
-ExtraButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-ExtraButton.Size = UDim2.new(0, 60, 0, 30)
-ExtraButton.Position = UDim2.new(0, 0, 0.15, 0)
-ExtraButton.Text = "Extra"
-ExtraButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-ExtraButton.TextSize = 14
-ExtraButton.Font = Enum.Font.SourceSansBold
-
--- Buttons for Main and Extra
-AimLockButton.Parent = MainFrame
-AimLockButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-AimLockButton.Size = UDim2.new(0, 200, 0, 40)
-AimLockButton.Position = UDim2.new(0.3, 0, 0.25, 0)  -- Adjusted position for Aim Lock
-AimLockButton.Text = "Aim Lock (Q)"
-AimLockButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-AimLockButton.TextSize = 14
-AimLockButton.Font = Enum.Font.SourceSansBold
-AimLockButton.Visible = false  -- Default visibility set to false
-
-FOVButton.Parent = MainFrame
-FOVButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-FOVButton.Size = UDim2.new(0, 200, 0, 40)
-FOVButton.Position = UDim2.new(0.3, 0, 0.4, 0)  -- Adjusted position for FOV
-FOVButton.Text = "FOV"
-FOVButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-FOVButton.TextSize = 14
-FOVButton.Font = Enum.Font.SourceSansBold
-FOVButton.Visible = false  -- Default visibility set to false
-
-DiscordButton.Parent = MainFrame
-DiscordButton.BackgroundColor3 = Color3.fromRGB(0, 0, 255)  -- Blue color for Discord
-DiscordButton.Size = UDim2.new(0, 200, 0, 40)
-DiscordButton.Position = UDim2.new(0.3, 0, 0.55, 0)  -- Positioned below FOV
-DiscordButton.Text = "Join Discord"
-DiscordButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-DiscordButton.TextSize = 14
-DiscordButton.Font = Enum.Font.SourceSansBold
-DiscordButton.Visible = false  -- Default visibility set to false
-
-TrashTalkButton.Parent = MainFrame
-TrashTalkButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-TrashTalkButton.Size = UDim2.new(0, 200, 0, 40)
-TrashTalkButton.Position = UDim2.new(0.3, 0, 0.25, 0)  -- Higher in Extra
-TrashTalkButton.Text = "Trash Talk"
-TrashTalkButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-TrashTalkButton.TextSize = 14
-TrashTalkButton.Font = Enum.Font.SourceSansBold
-TrashTalkButton.Visible = false  -- Default visibility set to false
-
-MinimizeButton.Parent = MainFrame
-MinimizeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-MinimizeButton.Size = UDim2.new(0, 25, 0, 25)
-MinimizeButton.Position = UDim2.new(0.95, -25, 0.05, 0)
-MinimizeButton.Text = "-"
-MinimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-MinimizeButton.TextSize = 20
-
--- Function to show the Main section (Aim Lock, FOV, Discord)
-MainButton.MouseButton1Click:Connect(function()
-    AimLockButton.Visible = true
-    FOVButton.Visible = true
-    DiscordButton.Visible = true  -- Show Discord Button
-    TrashTalkButton.Visible = false  -- Hide Trash Talk Button in Main
-end)
-
--- Function to show the Extra section (Trash Talk only)
-ExtraButton.MouseButton1Click:Connect(function()
-    AimLockButton.Visible = false
-    FOVButton.Visible = false
-    DiscordButton.Visible = false  -- Hide Discord Button in Extra
-    TrashTalkButton.Visible = true  -- Show Trash Talk Button
-end)
-
--- Function to copy Discord link to clipboard
-DiscordButton.MouseButton1Click:Connect(function()
-    setclipboard("https://discord.gg/t6UgyY65")
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Discord Link Copied!",
-        Text = "The Discord invite link has been copied to your clipboard.",
-        Duration = 2
-    })
-end)
-
--- Toggle FOV (green for enabled, red for disabled)
-FOVButton.MouseButton1Click:Connect(function()
-    _G.FOVEnabled = not _G.FOVEnabled
-    if _G.FOVEnabled then
-        FOVButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)  -- Green when enabled
-        _G.CircleVisible = true
-    else
-        FOVButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)  -- Red when disabled
-        _G.CircleVisible = false
-    end
-end)
-
--- Toggle AimLock (green for enabled, red for disabled)
-AimLockButton.MouseButton1Click:Connect(function()
-    _G.AimLockEnabled = not _G.AimLockEnabled
-    if _G.AimLockEnabled then
-        AimLockButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)  -- Green when enabled
-        FOVCircle.Color = Color3.fromRGB(0, 255, 0)  -- Green when enabled
-    else
-        AimLockButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)  -- Red when disabled
-        FOVCircle.Color = Color3.fromRGB(255, 0, 0)  -- Red when disabled
-        LockedTarget = nil
-        TargetLabel.Text = "No Target Locked"
-    end
-end)
-
--- Trash Talk functionality
-local words = {
-    'ur bad', 'Dont care', 'Quit the game', 'XD ', 'sad', 'I would quit if i had that aim',
-    'Log already sonny boy', 'how did u fail to get me',
+local Tabs = {
+    Main = Window:AddTab({ Title = "Main", Icon = "list" })
 }
 
-local player = game.Players.LocalPlayer
-local keybind = 'z'
-local event = game.ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest
-
-TrashTalkButton.MouseButton1Click:Connect(function()
-    local randomMessage = words[math.random(1, #words)]
-    event:FireServer(randomMessage, "All")
+-- Main Tab
+local AimLockToggle = Tabs.Main:AddToggle("AimLockToggle", {Title = "Enable Aim Lock", Default = _G.AimLockEnabled})
+AimLockToggle:OnChanged(function(value)
+    _G.AimLockEnabled = value
+    if value then
+        TargetLabel.Text = "No Target Locked"
+    else
+        TargetLabel.Text = ""
+        LockedTarget = nil
+    end
 end)
 
--- Minimize button functionality
-MinimizeButton.MouseButton1Click:Connect(function()
-    Minimized = not Minimized
-    MainFrame.Visible = not Minimized
+local SensitivitySlider = Tabs.Main:AddSlider("SensitivitySlider", {
+    Title = "Adjust Sensitivity",
+    Min = 0.1,
+    Max = 1,
+    Default = _G.Sensitivity,
+    Rounding = 2,
+    Step = 0.01,
+    Callback = function(value)
+        _G.Sensitivity = value
+    end
+})
+
+local FOVToggle = Tabs.Main:AddToggle("FOVToggle", {Title = "Enable FOV", Default = _G.FOVEnabled})
+FOVToggle:OnChanged(function(value)
+    _G.FOVEnabled = value
+    _G.CircleVisible = value
 end)
+
+local FOVRadiusSlider = Tabs.Main:AddSlider("FOVRadiusSlider", {
+    Title = "Adjust FOV Radius",
+    Min = 50,
+    Max = 500,
+    Default = _G.CircleRadius,
+    Rounding = 0,
+    Step = 10,
+    Callback = function(value)
+        _G.CircleRadius = value
+    end
+})
+
+local CircleColorPicker = Tabs.Main:AddColorPicker("CircleColorPicker", {
+    Title = "Circle Color",
+    Default = _G.CircleColor,
+    Callback = function(value)
+        _G.CircleColor = value
+    end
+})
+
+local PredictionToggle = Tabs.Main:AddToggle("PredictionToggle", {Title = "Enable Prediction", Default = _G.PredictionEnabled})
+PredictionToggle:OnChanged(function(value)
+    _G.PredictionEnabled = value
+    print("Prediction Toggle Value:", value) -- Debugging statement
+end)
+
+local PredictionTimeSlider = Tabs.Main:AddSlider("PredictionTimeSlider", {
+    Title = "Adjust Prediction Time",
+    Min = 0.01,
+    Max = 0.2,
+    Default = _G.PredictionTime,
+    Rounding = 2,
+    Step = 0.01,
+    Callback = function(value)
+        _G.PredictionTime = value
+        print("Prediction Time Slider Value:", value) -- Debugging statement
+    end
+})
