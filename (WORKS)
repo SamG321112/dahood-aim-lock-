@@ -13,6 +13,10 @@ _G.AimPart = "Head"
 _G.Sensitivity = 0.2
 _G.PredictionEnabled = false -- Start disabled
 _G.PredictionTime = 0.1 -- Initial prediction time
+_G.JumpStrengthEnabled = false -- Start disabled
+_G.WalkSpeedEnabled = false -- Start disabled
+_G.JumpPower = 50 -- Default jump power
+_G.WalkSpeed = 16 -- Default walk speed
 
 _G.CircleSides = 64
 _G.CircleColor = Color3.fromRGB(255, 0, 0) -- Red when disabled
@@ -78,6 +82,18 @@ local function PredictPosition(target)
     return target.Character[_G.AimPart].Position
 end
 
+local function setJumpPower(power)
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        LocalPlayer.Character:FindFirstChildOfClass("Humanoid").JumpPower = power
+    end
+end
+
+local function setWalkSpeed(speed)
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = math.min(speed, 500) -- Adjusted the maximum speed
+    end
+end
+
 UserInputService.InputBegan:Connect(function(Input)
     if Input.KeyCode == Enum.KeyCode.Q then
         if _G.AimLockEnabled then
@@ -109,6 +125,14 @@ RunService.RenderStepped:Connect(function()
             aimPosition = PredictPosition(LockedTarget)
         end
         Camera.CFrame = CFrame.new(Camera.CFrame.Position, aimPosition)
+    end
+    
+    if _G.JumpStrengthEnabled then
+        setJumpPower(_G.JumpPower)
+    end
+    
+    if _G.WalkSpeedEnabled then
+        setWalkSpeed(_G.WalkSpeed)
     end
 end)
 
@@ -170,6 +194,43 @@ local FOVRadiusSlider = Tabs.Main:AddSlider("FOVRadiusSlider", {
     end
 })
 
+-- Add Jump Strength and Walk Speed settings under Adjust FOV Radius
+local JumpStrengthToggle = Tabs.Main:AddToggle("JumpStrengthToggle", {Title = "Enable Jump Strength", Default = _G.JumpStrengthEnabled})
+JumpStrengthToggle:OnChanged(function(value)
+    _G.JumpStrengthEnabled = value
+end)
+
+local JumpPowerSlider = Tabs.Main:AddSlider("JumpPowerSlider", {
+    Title = "Adjust Jump Power",
+    Min = 0,
+    Max = 500, -- Adjusted the maximum value to 500
+    Default = _G.JumpPower,
+    Rounding = 0,
+    Step = 1,
+    Callback = function(value)
+        _G.JumpPower = value
+        setJumpPower(value)
+    end
+})
+
+local WalkSpeedToggle = Tabs.Main:AddToggle("WalkSpeedToggle", {Title = "Enable Walk Speed", Default = _G.WalkSpeedEnabled})
+WalkSpeedToggle:OnChanged(function(value)
+    _G.WalkSpeedEnabled = value
+end)
+
+local WalkSpeedSlider = Tabs.Main:AddSlider("WalkSpeedSlider", {
+    Title = "Adjust Walk Speed",
+    Min = 16,
+    Max = 500, -- Adjusted the maximum value to 500
+    Default = _G.WalkSpeed,
+    Rounding = 0,
+    Step = 1,
+    Callback = function(value)
+        _G.WalkSpeed = value
+        setWalkSpeed(value)
+    end
+})
+
 local CircleColorPicker = Tabs.Main:AddColorPicker("CircleColorPicker", {
     Title = "Circle Color",
     Default = _G.CircleColor,
@@ -196,3 +257,6 @@ local PredictionTimeSlider = Tabs.Main:AddSlider("PredictionTimeSlider", {
         print("Prediction Time Slider Value:", value) -- Debugging statement
     end
 })
+
+-- Ensure GUI Pops Up
+Fluent:Ready()
