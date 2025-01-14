@@ -1,4 +1,4 @@
---// Vars \\--
+--// Vars \--
 local Camera = workspace.CurrentCamera
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -17,6 +17,7 @@ _G.JumpStrengthEnabled = false -- Start disabled
 _G.WalkSpeedEnabled = false -- Start disabled
 _G.JumpPower = 50 -- Default jump power
 _G.WalkSpeed = 16 -- Default walk speed
+_G.ESPToggleEnabled = false -- ESP starts disabled
 
 _G.CircleSides = 64
 _G.CircleColor = Color3.fromRGB(255, 0, 0) -- Red when disabled
@@ -53,88 +54,69 @@ TargetLabel.Font = Enum.Font.SourceSansBold
 TargetLabel.Text = "No Target Locked"
 TargetLabel.Visible = true
 
-local function GetClosestPlayer()
-    local MaximumDistance = _G.CircleRadius
-    local Target = nil
+-- ESP Functionality Implementation
+local function toggleESP(enabled)
+    if enabled then
+        -- Define ESP settings
+        local FillColor = Color3.fromRGB(175, 25, 255)
+        local DepthMode = "AlwaysOnTop"
+        local FillTransparency = 0
+        local OutlineColor = Color3.fromRGB(255, 255, 255)
+        local OutlineTransparency = 0
 
-    for _, v in next, Players:GetPlayers() do
-        if v.Name ~= LocalPlayer.Name and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
-            local ScreenPoint = Camera:WorldToScreenPoint(v.Character.HumanoidRootPart.Position)
-            local VectorDistance = (Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y) - Vector2.new(ScreenPoint.X, ScreenPoint.Y)).Magnitude
+        local CoreGui = game:FindService("CoreGui")
+        local Players = game:FindService("Players")
+        local connections = {}
 
-            if VectorDistance < MaximumDistance then
-                Target = v
-                MaximumDistance = VectorDistance
-            end
-        end
-    end
+        local Storage = Instance.new("Folder")
+        Storage.Parent = CoreGui
+        Storage.Name = "Highlight_Storage"
 
-    return Target
-end
+        local function Highlight(plr)
+            local Highlight = Instance.new("Highlight")
+            Highlight.Name = plr.Name
+            Highlight.FillColor = FillColor
+            Highlight.DepthMode = DepthMode
+            Highlight.FillTransparency = FillTransparency
+            Highlight.OutlineColor = OutlineColor
+            Highlight.OutlineTransparency = OutlineTransparency
+            Highlight.Parent = Storage
 
-local function PredictPosition(target)
-    local targetRoot = target.Character:FindFirstChild("HumanoidRootPart")
-    if targetRoot then
-        local velocity = targetRoot.Velocity
-        local predictedPosition = targetRoot.Position + (velocity * _G.PredictionTime)
-        return predictedPosition
-    end
-    return target.Character[_G.AimPart].Position
-end
-
-local function setJumpPower(power)
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
-        LocalPlayer.Character:FindFirstChildOfClass("Humanoid").JumpPower = power
-    end
-end
-
-local function setWalkSpeed(speed)
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
-        LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = math.min(speed, 500) -- Adjusted the maximum speed
-    end
-end
-
-UserInputService.InputBegan:Connect(function(Input)
-    if Input.KeyCode == Enum.KeyCode.Q then
-        if _G.AimLockEnabled then
-            if LockedTarget == nil then
-                LockedTarget = GetClosestPlayer()
-                if LockedTarget then
-                    TargetLabel.Text = "Locked On: " .. LockedTarget.Name
+            local plrchar = plr.Character
+            if plrchar then
+                if plr ~= game.Players.LocalPlayer then
+                    Highlight.Adornee = plrchar
                 end
-            else
-                LockedTarget = nil
-                TargetLabel.Text = "No Target Locked"
+            end
+
+            connections[plr] = plr.CharacterAdded:Connect(function(char)
+                Highlight.Adornee = char
+            end)
+        end
+
+        Players.PlayerAdded:Connect(Highlight)
+        for _, v in next, Players:GetPlayers() do
+            if v ~= game.Players.LocalPlayer then
+                Highlight(v)
             end
         end
-    end
-end)
 
-RunService.RenderStepped:Connect(function()
-    FOVCircle.Position = Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y)
-    FOVCircle.Radius = _G.CircleRadius
-    FOVCircle.Filled = _G.CircleFilled
-    FOVCircle.Color = _G.CircleColor
-    FOVCircle.Visible = _G.CircleVisible
-    FOVCircle.Transparency = _G.CircleTransparency
-    FOVCircle.Thickness = _G.CircleThickness
-
-    if _G.AimLockEnabled and LockedTarget and LockedTarget.Character and LockedTarget.Character:FindFirstChild("HumanoidRootPart") then
-        local aimPosition = LockedTarget.Character[_G.AimPart].Position
-        if _G.PredictionEnabled then
-            aimPosition = PredictPosition(LockedTarget)
+        Players.PlayerRemoving:Connect(function(plr)
+            local plrname = plr.Name
+            if Storage[plrname] then
+                Storage[plrname]:Destroy()
+            end
+            if connections[plr] then
+                connections[plr]:Disconnect()
+            end
+        end)
+    else
+        local highlightStorage = game.CoreGui:FindFirstChild("Highlight_Storage")
+        if highlightStorage then
+            highlightStorage:Destroy()
         end
-        Camera.CFrame = CFrame.new(Camera.CFrame.Position, aimPosition)
     end
-    
-    if _G.JumpStrengthEnabled then
-        setJumpPower(_G.JumpPower)
-    end
-    
-    if _G.WalkSpeedEnabled then
-        setWalkSpeed(_G.WalkSpeed)
-    end
-end)
+end
 
 -- Load Fluent UI Library
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
@@ -149,7 +131,8 @@ local Window = Fluent:CreateWindow({
 })
 
 local Tabs = {
-    Main = Window:AddTab({ Title = "Main", Icon = "list" })
+    Main = Window:AddTab({ Title = "Main", Icon = "list" }),
+    Misc = Window:AddTab({ Title = "Misc", Icon = "settings" })
 }
 
 -- Main Tab
@@ -194,69 +177,62 @@ local FOVRadiusSlider = Tabs.Main:AddSlider("FOVRadiusSlider", {
     end
 })
 
--- Add Jump Strength and Walk Speed settings under Adjust FOV Radius
-local JumpStrengthToggle = Tabs.Main:AddToggle("JumpStrengthToggle", {Title = "Enable Jump Strength", Default = _G.JumpStrengthEnabled})
-JumpStrengthToggle:OnChanged(function(value)
-    _G.JumpStrengthEnabled = value
-end)
-
-local JumpPowerSlider = Tabs.Main:AddSlider("JumpPowerSlider", {
-    Title = "Adjust Jump Power",
-    Min = 0,
-    Max = 500, -- Adjusted the maximum value to 500
-    Default = _G.JumpPower,
-    Rounding = 0,
-    Step = 1,
-    Callback = function(value)
-        _G.JumpPower = value
-        setJumpPower(value)
-    end
-})
-
 local WalkSpeedToggle = Tabs.Main:AddToggle("WalkSpeedToggle", {Title = "Enable Walk Speed", Default = _G.WalkSpeedEnabled})
 WalkSpeedToggle:OnChanged(function(value)
     _G.WalkSpeedEnabled = value
+    if value then
+        LocalPlayer.Character.Humanoid.WalkSpeed = _G.WalkSpeed
+    else
+        LocalPlayer.Character.Humanoid.WalkSpeed = 16 -- Default
+    end
 end)
 
 local WalkSpeedSlider = Tabs.Main:AddSlider("WalkSpeedSlider", {
     Title = "Adjust Walk Speed",
     Min = 16,
-    Max = 500, -- Adjusted the maximum value to 500
+    Max = 100,
     Default = _G.WalkSpeed,
     Rounding = 0,
     Step = 1,
     Callback = function(value)
         _G.WalkSpeed = value
-        setWalkSpeed(value)
+        if _G.WalkSpeedEnabled then
+            LocalPlayer.Character.Humanoid.WalkSpeed = value
+        end
     end
 })
 
-local CircleColorPicker = Tabs.Main:AddColorPicker("CircleColorPicker", {
-    Title = "Circle Color",
-    Default = _G.CircleColor,
-    Callback = function(value)
-        _G.CircleColor = value
+local JumpStrengthToggle = Tabs.Main:AddToggle("JumpStrengthToggle", {Title = "Enable Jump Strength", Default = _G.JumpStrengthEnabled})
+JumpStrengthToggle:OnChanged(function(value)
+    _G.JumpStrengthEnabled = value
+    if value then
+        LocalPlayer.Character.Humanoid.JumpPower = _G.JumpPower
+    else
+        LocalPlayer.Character.Humanoid.JumpPower = 50 -- Default
     end
-})
-
-local PredictionToggle = Tabs.Main:AddToggle("PredictionToggle", {Title = "Enable Prediction", Default = _G.PredictionEnabled})
-PredictionToggle:OnChanged(function(value)
-    _G.PredictionEnabled = value
-    print("Prediction Toggle Value:", value) -- Debugging statement
 end)
 
-local PredictionTimeSlider = Tabs.Main:AddSlider("PredictionTimeSlider", {
-    Title = "Adjust Prediction Time",
-    Min = 0.01,
-    Max = 0.2,
-    Default = _G.PredictionTime,
-    Rounding = 2,
-    Step = 0.01,
+local JumpStrengthSlider = Tabs.Main:AddSlider("JumpStrengthSlider", {
+    Title = "Adjust Jump Strength",
+    Min = 50,
+    Max = 200,
+    Default = _G.JumpPower,
+    Rounding = 0,
+    Step = 1,
     Callback = function(value)
-        _G.PredictionTime = value
-        print("Prediction Time Slider Value:", value) -- Debugging statement
+        _G.JumpPower = value
+        if _G.JumpStrengthEnabled then
+            LocalPlayer.Character.Humanoid.JumpPower = value
+        end
     end
 })
+
+-- Misc Tab
+local ESPToggle = Tabs.Misc:AddToggle("ESPToggle", {Title = "Enable ESP", Default = _G.ESPToggleEnabled})
+ESPToggle:OnChanged(function(value)
+    _G.ESPToggleEnabled = value
+    toggleESP(value)
+end)
 
 -- Ensure GUI Pops Up
 Fluent:Ready()
