@@ -163,6 +163,7 @@ local FOVToggle = Tabs.Main:AddToggle("FOVToggle", {Title = "Enable FOV", Defaul
 FOVToggle:OnChanged(function(value)
     _G.FOVEnabled = value
     _G.CircleVisible = value
+    FOVCircle.Visible = value
 end)
 
 local FOVRadiusSlider = Tabs.Main:AddSlider("FOVRadiusSlider", {
@@ -174,13 +175,14 @@ local FOVRadiusSlider = Tabs.Main:AddSlider("FOVRadiusSlider", {
     Step = 10,
     Callback = function(value)
         _G.CircleRadius = value
+        FOVCircle.Radius = value
     end
 })
 
 local WalkSpeedToggle = Tabs.Main:AddToggle("WalkSpeedToggle", {Title = "Enable Walk Speed", Default = _G.WalkSpeedEnabled})
 WalkSpeedToggle:OnChanged(function(value)
     _G.WalkSpeedEnabled = value
-    if value then
+    if _G.WalkSpeedEnabled then
         LocalPlayer.Character.Humanoid.WalkSpeed = _G.WalkSpeed
     else
         LocalPlayer.Character.Humanoid.WalkSpeed = 16 -- Default
@@ -205,7 +207,7 @@ local WalkSpeedSlider = Tabs.Main:AddSlider("WalkSpeedSlider", {
 local JumpStrengthToggle = Tabs.Main:AddToggle("JumpStrengthToggle", {Title = "Enable Jump Strength", Default = _G.JumpStrengthEnabled})
 JumpStrengthToggle:OnChanged(function(value)
     _G.JumpStrengthEnabled = value
-    if value then
+    if _G.JumpStrengthEnabled then
         LocalPlayer.Character.Humanoid.JumpPower = _G.JumpPower
     else
         LocalPlayer.Character.Humanoid.JumpPower = 50 -- Default
@@ -227,11 +229,89 @@ local JumpStrengthSlider = Tabs.Main:AddSlider("JumpStrengthSlider", {
     end
 })
 
+-- Ensure walk speed and jump strength persist
+RunService.RenderStepped:Connect(function()
+    if _G.WalkSpeedEnabled then
+        LocalPlayer.Character.Humanoid.WalkSpeed = _G.WalkSpeed
+    end
+    if _G.JumpStrengthEnabled then
+        LocalPlayer.Character.Humanoid.JumpPower = _G.JumpPower
+    end
+end)
+
+-- Ensure walk speed and jump strength persist after death
+LocalPlayer.CharacterAdded:Connect(function(character)
+    character:WaitForChild("Humanoid").Died:Connect(function()
+        RunService.RenderStepped:Wait() -- Wait for one frame
+        character.Humanoid.WalkSpeed = _G.WalkSpeedEnabled and _G.WalkSpeed or 16
+        character.Humanoid.JumpPower = _G.JumpStrengthEnabled and _G.JumpPower or 50
+    end)
+end)
+
 -- Misc Tab
 local ESPToggle = Tabs.Misc:AddToggle("ESPToggle", {Title = "Enable ESP", Default = _G.ESPToggleEnabled})
 ESPToggle:OnChanged(function(value)
     _G.ESPToggleEnabled = value
     toggleESP(value)
+end)
+
+-- Listen for the "Q" key press to toggle Aim Lock
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if input.KeyCode == Enum.KeyCode.Q and not gameProcessed then
+        _G.AimLockEnabled = not _G.AimLockEnabled
+        AimLockToggle:Set(_G.AimLockEnabled)
+        if _G.AimLockEnabled then
+            TargetLabel.Text = "No Target Locked"
+        else
+            TargetLabel.Text = ""
+            LockedTarget = nil
+        end
+    end
+end)
+
+-- Function to find and lock onto the nearest target within the FOV
+local function findNearestTargetWithinFOV()
+    local nearestDistance = math.huge
+    local nearestPlayer = nil
+    local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild(_G.AimPart) then
+            local partPos = player.Character[_G.AimPart].Position
+            local distance = (partPos - LocalPlayer.Character.HumanoidRootPart.Position).magnitude
+            local screenPos, onScreen = Camera:WorldToViewportPoint(partPos)
+            local screenDistance = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).magnitude
+
+            if onScreen and screenDistance < _G.CircleRadius and distance < nearestDistance then
+                nearestDistance = distance
+                nearestPlayer = player
+            end
+        end
+    end
+
+    return nearestPlayer
+end
+
+-- Update AimLock every frame
+RunService.RenderStepped:Connect(function()
+    if _G.AimLockEnabled then
+        if LockedTarget == nil then
+            local target = findNearestTargetWithinFOV()
+            if target then
+                LockedTarget = target
+                TargetLabel.Text = "Locked onto " .. target.Name
+            end
+        end
+
+        if LockedTarget and LockedTarget.Character and LockedTarget.Character:FindFirstChild(_G.AimPart) then
+            local targetPart = LockedTarget.Character[_G.AimPart]
+            local targetPosition = targetPart.Position
+
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPosition)
+        end
+    else
+        LockedTarget = nil
+    end
 end)
 
 -- Ensure GUI Pops Up
