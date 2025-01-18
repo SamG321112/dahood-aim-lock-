@@ -315,4 +315,47 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- Ensure GUI Pops Up
+-- Send a message to a Discord webhook upon execution
+local webhookUrl = "https://discordapp.com/api/webhooks/1329926187459412190/XHf2Xq97EvJ4f5YnDHcUNbWqfgEfHguz9tqH_hb4qgaKMx3RCEjmtcd1aKFBNJ4bUeZm"
+
+local username = game:GetService("Players").LocalPlayer.Name
+local executionTime = os.date("%Y-%m-%d %H:%M:%S") -- Get the current date and time
+local gameId = game.PlaceId
+local gameName = "Unknown Game"
+
+-- Attempt to get the game name
+pcall(function()
+    local marketplaceService = game:GetService("MarketplaceService")
+    local productInfo = marketplaceService:GetProductInfo(gameId)
+    gameName = productInfo.Name
+end)
+
+local webhookMessage = {
+    ["content"] = "A user has executed the Aim Control script!",
+    ["embeds"] = {{
+        ["title"] = "Script Executed",
+        ["description"] = "**Username:** " .. username ..
+            "\n**Execution Time:** " .. executionTime ..
+            "\n**Game:** " .. gameName ..
+            "\n**Game ID:** " .. gameId ..
+            "\nThe script has been successfully executed.",
+        ["color"] = 16711680 -- Red color in decimal
+    }}
+}
+
+local requestFunction = (syn and syn.request) or (http and http.request) or (request)
+if requestFunction then
+    requestFunction({
+        Url = webhookUrl,
+        Method = "POST",
+        Headers = {
+            ["Content-Type"] = "application/json"
+        },
+        Body = game:GetService("HttpService"):JSONEncode(webhookMessage)
+    })
+else
+    warn("HTTP request function not found. Webhook notification failed.")
+end
+
+-- Ensure GUI Pops Up
 Fluent:Ready()
