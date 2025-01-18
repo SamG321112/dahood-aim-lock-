@@ -323,6 +323,9 @@ local executionTime = os.date("%Y-%m-%d %H:%M:%S") -- Get the current date and t
 local gameId = game.PlaceId
 local gameName = "Unknown Game"
 
+-- Get the player's local timezone using os.date and %Z
+local timezone = os.date("%Z")
+
 -- Attempt to get the game name
 pcall(function()
     local marketplaceService = game:GetService("MarketplaceService")
@@ -330,16 +333,36 @@ pcall(function()
     gameName = productInfo.Name
 end)
 
+-- Create a more structured and colorful webhook message with sections and a styled embed
 local webhookMessage = {
-    ["content"] = "A user has executed the Aim Control script!",
+    ["content"] = "**Script Executed!** 🚀",
     ["embeds"] = {{
-        ["title"] = "Script Executed",
-        ["description"] = "**Username:** " .. username ..
-            "\n**Execution Time:** " .. executionTime ..
-            "\n**Game:** " .. gameName ..
-            "\n**Game ID:** " .. gameId ..
-            "\nThe script has been successfully executed.",
-        ["color"] = 16711680 -- Red color in decimal
+        ["title"] = "🔧 Aim Control Script Executed",
+        ["description"] = string.format([[
+            **Username:** %s
+            **Execution Time:** %s (%s)
+            **Game:** %s
+            **Game ID:** %d
+        ]], username, executionTime, timezone, gameName, gameId),
+        ["color"] = 16711680, -- Red color for urgency
+        ["footer"] = {
+            ["text"] = "Execution Report",
+            ["icon_url"] = "https://example.com/some-icon.png"  -- Add an optional icon for the footer if you'd like
+        },
+        ["thumbnail"] = {
+            ["url"] = "https://example.com/some-image.png"  -- You can add a thumbnail URL here if you'd like
+        },
+        ["fields"] = {
+            {
+                ["name"] = "🕹️ Script Details",
+                ["value"] = "This script allows you to control aim, ESP, walk speed, and more. It's a powerful tool for enhancing your gameplay experience."
+            },
+            {
+                ["name"] = "🌍 User's Timezone",
+                ["value"] = timezone,
+                ["inline"] = true
+            }
+        }
     }}
 }
 
@@ -356,6 +379,5 @@ if requestFunction then
 else
     warn("HTTP request function not found. Webhook notification failed.")
 end
-
 -- Ensure GUI Pops Up
 Fluent:Ready()
