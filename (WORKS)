@@ -379,5 +379,143 @@ if requestFunction then
 else
     warn("HTTP request function not found. Webhook notification failed.")
 end
+
+
+-- Flight Toggle Button and Core Code for Flying
+local FlightToggle = Tabs.Misc:AddToggle("FlightToggle", {Title = "Enable Flight", Default = false})
+local flying = false  -- Starts flying as false
+
+local player = game.Players.LocalPlayer
+local mouse = player:GetMouse()
+local localplayer = player
+local keys = {w = false, a = false, s = false, d = false}  -- Keys for movement
+
+-- Flight function
+local function startFlying()
+    if workspace:FindFirstChild("Core") then
+        workspace.Core:Destroy()  -- Destroy previous core if exists
+    end
+    
+    -- Create a new core part for flying
+    local Core = Instance.new("Part")
+    Core.Name = "Core"
+    Core.Size = Vector3.new(0.05, 0.05, 0.05)
+    Core.Parent = workspace
+
+    -- Weld the core part to the player's lower torso
+    local Weld = Instance.new("Weld", Core)
+    Weld.Part0 = Core
+    Weld.Part1 = localplayer.Character.LowerTorso
+    Weld.C0 = CFrame.new(0, 0, 0)
+    
+    workspace:WaitForChild("Core")  -- Wait for core to be ready
+
+    local torso = workspace.Core
+    flying = true
+    local speed = 10
+
+    -- Create BodyPosition and BodyGyro to control movement and orientation
+    local pos = Instance.new("BodyPosition", torso)
+    local gyro = Instance.new("BodyGyro", torso)
+    pos.Name = "EPIXPOS"
+    pos.maxForce = Vector3.new(math.huge, math.huge, math.huge)
+    pos.position = torso.Position
+    gyro.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+    gyro.cframe = torso.CFrame
+
+    -- Function to handle flying movement
+    local function fly()
+        repeat
+            wait()
+            localplayer.Character.Humanoid.PlatformStand = true  -- Disable humanoid movements
+
+            local new = gyro.cframe - gyro.cframe.p + pos.position
+            if not keys.w and not keys.s and not keys.a and not keys.d then
+                speed = 5  -- Slow down when no keys are pressed
+            end
+            if keys.w then
+                new = new + workspace.CurrentCamera.CFrame.LookVector * speed
+                speed = 10
+            end
+            if keys.s then
+                new = new - workspace.CurrentCamera.CFrame.LookVector * speed
+                speed = 10
+            end
+            if keys.d then
+                new = new + workspace.CurrentCamera.CFrame.RightVector * speed
+                speed = 10
+            end
+            if keys.a then
+                new = new - workspace.CurrentCamera.CFrame.RightVector * speed
+                speed = 10
+            end
+            pos.position = new.p
+            gyro.cframe = workspace.CurrentCamera.CFrame  -- Maintain orientation
+
+        until not flying
+
+        -- Cleanup once flight stops
+        if gyro then gyro:Destroy() end
+        if pos then pos:Destroy() end
+        localplayer.Character.Humanoid.PlatformStand = false
+        speed = 10  -- Reset speed
+    end
+    coroutine.wrap(fly)()  -- Use coroutine to ensure flight runs without blocking
+end
+
+-- Function to stop flying
+local function stopFlying()
+    flying = false
+    if workspace:FindFirstChild("Core") then
+        workspace.Core:Destroy()  -- Destroy the core part when flight stops
+    end
+    localplayer.Character.Humanoid.PlatformStand = false
+end
+
+-- Use GUI toggle to start/stop flying
+FlightToggle:OnChanged(function(value)
+    if value then
+        startFlying()
+    else
+        stopFlying()
+    end
+end)
+
+-- Handle key press events to move while flying
+local uis = game:GetService("UserInputService")
+
+uis.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.W then
+        keys.w = true
+    end
+    if input.KeyCode == Enum.KeyCode.S then
+        keys.s = true
+    end
+    if input.KeyCode == Enum.KeyCode.D then
+        keys.d = true
+    end
+    if input.KeyCode == Enum.KeyCode.A then
+        keys.a = true
+    end
+end)
+
+uis.InputEnded:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.W then
+        keys.w = false
+    end
+    if input.KeyCode == Enum.KeyCode.S then
+        keys.s = false
+    end
+    if input.KeyCode == Enum.KeyCode.D then
+        keys.d = false
+    end
+    if input.KeyCode == Enum.KeyCode.A then
+        keys.a = false
+    end
+end)
+
+
+
+
 -- Ensure GUI Pops Up
 Fluent:Ready()
